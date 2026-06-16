@@ -1,3 +1,36 @@
+<?php
+require_once '../config.php';
+
+if (!isset($_SESSION['api_token'])) {
+    header("Location: login.php");
+    exit;
+}
+
+$error = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $payload = [
+        'patient_id' => $_POST['patient_id'] ?? '',
+        'patient_name' => $_POST['patient_name'] ?? '',
+        'nik_dummy' => $_POST['nik_dummy'] ?? '',
+        'datebirth' => $_POST['datebirth'] ?? '',
+        'gender' => $_POST['gender'] ?? '',
+        'address' => $_POST['address'] ?? '',
+        'family_phone' => $_POST['family_phone'] ?? '',
+        'patient_category' => $_POST['patient_category'] ?? '',
+        'monitoring_date' => $_POST['monitoring_date'] ?? '',
+        'user_id' => $_SESSION['user']['id'] ?? 1
+    ];
+
+    $result = callAPI('POST', '/patients', $payload);
+
+    if ($result['status_code'] === 201) {
+        header("Location: pasien.php");
+        exit;
+    } else {
+        $error = $result['response']['message'] ?? 'Gagal menyimpan data pasien. Silakan periksa kembali data Anda.';
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -30,7 +63,7 @@
     </style>
 </head>
 <body>
-
+ 
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-3 col-lg-2 sidebar p-3 d-flex flex-column">
@@ -44,15 +77,15 @@
                     <a href="pasien.php" class="nav-link text-white px-3 py-2 d-block rounded">👥 Daftar Pasien</a>
                 </li>
                 <li class="nav-item mb-2">
-                    <a href="jadwal.php" class="nav-link text-white px-3 py-2 d-block rounded">📅 Jadwal Kunjungan</a>
+                    <a href="#" class="nav-link text-white px-3 py-2 d-block rounded opacity-50">📅 Jadwal Kunjungan</a>
                 </li>
                 <li class="nav-item mb-2">
-                    <a href="rekam-medis.php" class="nav-link text-white px-3 py-2 d-block rounded">📝 Rekam Medis</a>
+                    <a href="#" class="nav-link text-white px-3 py-2 d-block rounded opacity-50">📝 Rekam Medis</a>
                 </li>
             </ul>
             <hr>
             <div>
-                <a href="login.php" class="btn btn-danger btn-sm w-100 fw-medium">🚪 Keluar</a>
+                <a href="logout.php" class="btn btn-danger btn-sm w-100 fw-medium">🚪 Keluar</a>
             </div>
         </div>
 
@@ -65,7 +98,13 @@
                 <a href="pasien.php" class="btn btn-outline-secondary btn-sm fw-medium">⬅️ Kembali ke Daftar</a>
             </div>
 
-            <form action="pasien.php" method="POST">
+            <?php if (!empty($error)): ?>
+                <div class="alert alert-danger mb-4 shadow-sm border-0" role="alert">
+                    ⚠️ <?php echo htmlspecialchars($error); ?>
+                </div>
+            <?php endif; ?>
+
+            <form action="" method="POST">
                 <div class="row g-4">
                     
                     <div class="col-md-6">
@@ -73,11 +112,11 @@
                             <h5 class="fw-bold text-primary mb-3">📋 Informasi Petugas Medis</h5>
                             <div class="mb-3">
                                 <label for="id_petugas" class="form-label small fw-medium">ID Petugas Medis</label>
-                                <input type="text" class="form-control" id="id_petugas" placeholder="Contoh: PM-2026001" required>
+                                <input type="text" class="form-control bg-light" id="id_petugas" value="PM-2026-<?php echo htmlspecialchars($_SESSION['user']['id'] ?? '1'); ?>" readonly>
                             </div>
                             <div class="mb-3">
                                 <label for="nama_petugas" class="form-label small fw-medium">Nama Petugas Medis</label>
-                                <input type="text" class="form-control" id="nama_petugas" placeholder="Masukkan nama lengkap petugas" required>
+                                <input type="text" class="form-control bg-light" id="nama_petugas" value="<?php echo htmlspecialchars($_SESSION['user']['name'] ?? 'Perawat'); ?>" readonly>
                             </div>
                         </div>
                     </div>
@@ -86,12 +125,12 @@
                         <div class="card card-custom shadow-sm p-4 h-100">
                             <h5 class="fw-bold text-danger mb-3">🩺 Rekam Medis & Jadwal Kontrol</h5>
                             <div class="mb-3">
-                                <label class="form-label small fw-medium">Nomor Rekam Medis (No. RM)</label>
-                                <input type="text" class="form-control" placeholder="Contoh: RM-2026-0089" required>
+                                <label for="patient_id" class="form-label small fw-medium">Nomor Rekam Medis (No. RM)</label>
+                                <input type="text" name="patient_id" id="patient_id" class="form-control" placeholder="Contoh: RM-2026-0089" required>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label small fw-medium">Jadwal Kontrol Pasien</label>
-                                <input type="datetime-local" class="form-control" required>
+                                <label for="monitoring_date" class="form-label small fw-medium">Jadwal Kontrol Pasien</label>
+                                <input type="datetime-local" name="monitoring_date" id="monitoring_date" class="form-control">
                             </div>
                         </div>
                     </div>
@@ -102,18 +141,18 @@
                             
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label class="form-label small fw-medium">NIK Pasien (Sesuai KTP/KK)</label>
-                                    <input type="number" class="form-control" placeholder="Masukkan 16 digit NIK" required>
+                                    <label for="nik_dummy" class="form-label small fw-medium">NIK Pasien (Sesuai KTP/KK)</label>
+                                    <input type="number" name="nik_dummy" id="nik_dummy" class="form-control" placeholder="Masukkan 16 digit NIK" required>
                                 </div>
                                 
                                 <div class="col-md-6">
-                                    <label class="form-label small fw-medium">Nama Lengkap Pasien</label>
-                                    <input type="text" class="form-control" placeholder="Masukkan nama pasien" required>
+                                    <label for="patient_name" class="form-label small fw-medium">Nama Lengkap Pasien</label>
+                                    <input type="text" name="patient_name" id="patient_name" class="form-control" placeholder="Masukkan nama pasien" required>
                                 </div>
 
-                                <div class="col-md-4">
-                                    <label class="form-label small fw-medium">Kategori Pasien</label>
-                                    <select class="form-select" required>
+                                <div class="col-md-3">
+                                    <label for="patient_category" class="form-label small fw-medium">Kategori Pasien</label>
+                                    <select name="patient_category" id="patient_category" class="form-select" required>
                                         <option value="" selected disabled>-- Pilih Kategori --</option>
                                         <option value="Balita">👶 Balita (0 - 5 Tahun)</option>
                                         <option value="Anak-anak">👦 Anak-anak</option>
@@ -122,24 +161,33 @@
                                     </select>
                                 </div>
 
-                                <div class="col-md-4">
-                                    <label class="form-label small fw-medium">Tempat Lahir</label>
-                                    <input type="text" class="form-control" placeholder="Contoh: Malang" required>
+                                <div class="col-md-3">
+                                    <label for="gender" class="form-label small fw-medium">Jenis Kelamin</label>
+                                    <select name="gender" id="gender" class="form-select" required>
+                                        <option value="" selected disabled>-- Pilih Gender --</option>
+                                        <option value="Male">👨 Laki-laki</option>
+                                        <option value="Female">👩 Perempuan</option>
+                                    </select>
                                 </div>
 
-                                <div class="col-md-4">
-                                    <label class="form-label small fw-medium">Tanggal Lahir</label>
-                                    <input type="date" class="form-control" required>
+                                <div class="col-md-3">
+                                    <label for="tempat_lahir" class="form-label small fw-medium">Tempat Lahir</label>
+                                    <input type="text" id="tempat_lahir" class="form-control" placeholder="Contoh: Malang">
+                                </div>
+
+                                <div class="col-md-3">
+                                    <label for="datebirth" class="form-label small fw-medium">Tanggal Lahir</label>
+                                    <input type="date" name="datebirth" id="datebirth" class="form-control" required>
                                 </div>
 
                                 <div class="col-md-8">
-                                    <label class="form-label small fw-medium">Alamat Rumah Lengkap</label>
-                                    <input type="text" class="form-control" placeholder="Nama jalan, nomor rumah, RT/RW, desa/kelurahan, kecamatan" required>
+                                    <label for="address" class="form-label small fw-medium">Alamat Rumah Lengkap</label>
+                                    <input type="text" name="address" id="address" class="form-control" placeholder="Nama jalan, nomor rumah, RT/RW, desa/kelurahan, kecamatan" required>
                                 </div>
 
                                 <div class="col-md-4">
-                                    <label class="form-label small fw-medium">Nomor Telepon Darurat (Emergency)</label>
-                                    <input type="tel" class="form-control" placeholder="Contoh: 081234xxxxxx (Keluarga)" required>
+                                    <label for="family_phone" class="form-label small fw-medium">Nomor Telepon Darurat (Emergency)</label>
+                                    <input type="tel" name="family_phone" id="family_phone" class="form-control" placeholder="Contoh: 081234xxxxxx (Keluarga)" required>
                                 </div>
                             </div>
 
