@@ -1,3 +1,36 @@
+<?php
+require_once '../config.php';
+
+// Redirect if already logged in
+if (isset($_SESSION['api_token'])) {
+    header("Location: dashboard.php");
+    exit;
+}
+
+$error = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = $_POST['email'] ?? '';
+    $password = $_POST['password'] ?? '';
+
+    if (!empty($email) && !empty($password)) {
+        $result = callAPI('POST', '/login', [
+            'email' => $email,
+            'password' => $password
+        ]);
+
+        if ($result['status_code'] === 200 && isset($result['response']['success']) && $result['response']['success'] === true) {
+            $_SESSION['api_token'] = $result['response']['access_token'];
+            $_SESSION['user'] = $result['response']['user'];
+            header("Location: dashboard.php");
+            exit;
+        } else {
+            $error = $result['response']['message'] ?? 'Login gagal. Silakan coba lagi.';
+        }
+    } else {
+        $error = 'Email dan password wajib diisi.';
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -26,14 +59,20 @@
                     <h3 class="text-center fw-bold text-primary mb-2">CareVisitMonitor</h3>
                     <p class="text-muted text-center small mb-4">Silakan masuk ke akun perawat Anda</p>
                     
-                    <form action="dashboard.php" method="POST">
+                    <?php if (!empty($error)): ?>
+                        <div class="alert alert-danger" role="alert">
+                            <?php echo htmlspecialchars($error); ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <form action="" method="POST">
                         <div class="mb-3">
-                            <label for="username" class="form-label small fw-medium">Username / Email</label>
-                            <input type="text" class="form-control" id="username" placeholder="Masukkan username" required>
+                            <label for="username" class="form-label small fw-medium">Email</label>
+                            <input type="email" name="email" class="form-control" id="username" placeholder="Masukkan email" required>
                         </div>
                         <div class="mb-4">
                             <label for="password" class="form-label small fw-medium">Password</label>
-                            <input type="password" class="form-control" id="password" placeholder="••••••••" required>
+                            <input type="password" name="password" class="form-control" id="password" placeholder="••••••••" required>
                         </div>
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary fw-medium">Masuk Aplikasi</button>
