@@ -1,169 +1,207 @@
 <?php
 require_once '../config.php';
+require_once 'components/sf-icons.php';
 
 if (!isset($_SESSION['api_token'])) {
     header("Location: login.php");
     exit;
 }
 
-$patientsRes = callAPI('GET', '/patients');
-$patients = ($patientsRes['status_code'] === 200 && isset($patientsRes['response']['data'])) ? $patientsRes['response']['data'] : [];
+$patientsRes  = callAPI('GET', '/pasien');
+$patients     = ($patientsRes['status_code'] === 200 && isset($patientsRes['response']['data'])) ? $patientsRes['response']['data'] : [];
 
-$monitoringsRes = callAPI('GET', '/monitorings');
-$monitorings = ($monitoringsRes['status_code'] === 200 && isset($monitoringsRes['response']['data'])) ? $monitoringsRes['response']['data'] : [];
+$monitoringsRes = callAPI('GET', '/monitoring');
+$monitorings    = ($monitoringsRes['status_code'] === 200 && isset($monitoringsRes['response']['data'])) ? $monitoringsRes['response']['data'] : [];
 
-// Statistics
-$totalPatients = count($patients);
-
-$todayDate = date('Y-m-d');
-$todayVisits = 0;
-$todayFinished = 0;
-$todayAgenda = [];
+$totalPatients  = count($patients);
+$todayDate      = date('Y-m-d');
+$todayVisits    = 0;
+$needControl    = 0;
+$todayAgenda    = [];
 
 foreach ($monitorings as $m) {
-    if ($m['monitoring_date'] === $todayDate) {
+    $status = strtolower($m['status'] ?? '');
+    if (str_contains($status, 'control') || str_contains($status, 'kontrol')) $needControl++;
+    if (($m['monitoring_date'] ?? '') === $todayDate) {
         $todayVisits++;
-        if (($m['status'] ?? '') === 'Stable') {
-            $todayFinished++;
-        }
         $todayAgenda[] = $m;
+    }
+}
+
+$user = $_SESSION['user'] ?? [];
+$userName    = htmlspecialchars($user['name']  ?? 'Petugas');
+$userInitial = strtoupper(substr($user['name'] ?? 'P', 0, 1));
+$userEmail   = htmlspecialchars($user['email'] ?? '');
+
+function getStatusBadge($status) {
+    $s = strtolower($status ?? '');
+    if (str_contains($s, 'stable') || str_contains($s, 'stabil')) {
+        return '<span class="sv-badge sv-badge-stable"> Stabil</span>';
+    } elseif (str_contains($s, 'referral') || str_contains($s, 'rujukan')) {
+        return '<span class="sv-badge sv-badge-referral"> Perlu Rujukan</span>';
+    } else {
+        return '<span class="sv-badge sv-badge-control"> Perlu Kontrol</span>';
     }
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - CareVisitMonitor</title>
-    <!-- Bootstrap 5 CSS CDN -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/css?family=Poppins:300,400,500,600,700" rel="stylesheet">
+    <title>Dashboard — SIVISIT</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="globals.css" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f8f9fa;
-        }
-        .sidebar {
-            min-height: 100vh;
-            background-color: #0d6efd;
-            color: white;
-        }
-        .sidebar a {
-            text-decoration: none;
-        }
-        .sidebar a.text-white:hover {
-            color: white !important;
-            background-color: rgba(255,255,255,0.1);
+        @media (max-width: 768px) {
+            .dashboard-grid { grid-template-columns: 1fr !important; }
         }
     </style>
 </head>
 <body>
+<div class="sv-layout">
 
-<div class="container-fluid">
-    <div class="row">
-        <!-- Bagian Sidebar Navigasi -->
-        <div class="col-md-3 col-lg-2 sidebar p-3 d-flex flex-column">
-            <h4 class="fw-bold text-center mb-4">CareVisit</h4>
-            <hr>
-            <ul class="nav nav-pills flex-column mb-auto">
-                <li class="nav-item mb-2">
-                    <!-- Dashboard Aktif (Warna Putih) -->
-                    <a href="dashboard.php" class="nav-link active bg-white text-primary fw-medium">🏠 Dashboard</a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a href="pasien.php" class="nav-link text-white px-3 py-2 d-block rounded">👥 Daftar Pasien</a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a href="#" class="nav-link text-white px-3 py-2 d-block rounded opacity-50">📅 Jadwal Kunjungan</a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a href="#" class="nav-link text-white px-3 py-2 d-block rounded opacity-50">📝 Rekam Medis</a>
-                </li>
-            </ul>
-            <hr>
-            <div>
-                <a href="logout.php" class="btn btn-danger btn-sm w-100 fw-medium">🚪 Keluar</a>
+    <?php require_once 'components/sidebar.php'; ?>
+
+    <div class="sv-main">
+        <div class="sv-topbar">
+            <div class="sv-topbar-search">
+                <?php include 'components/search-icon.php'; ?>
+                <input
+                    type="text"
+                    placeholder="Cari pasien, NIK, atau kode..."
+                    id="globalSearch"
+                    autocomplete="off"
+                >
+            </div>
+            <div class="sv-topbar-right">
+                <div class="sv-user-info">
+                    <div class="user-text">
+                        <div class="user-name"><?= $userName ?></div>
+                        <div class="user-role"><?= $userEmail ?></div>
+                    </div>
+                    <div class="sv-avatar"><?= $userInitial ?></div>
+                </div>
             </div>
         </div>
 
-        <!-- Bagian Konten Utama -->
-        <div class="col-md-9 col-lg-10 p-4">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2 fw-bold text-secondary">Selamat Datang, <?php echo htmlspecialchars($_SESSION['user']['name'] ?? 'Perawat'); ?>!</h1>
-                <div class="text-muted small">Hari ini: <?php echo date('d M Y'); ?></div>
+        <div class="sv-content">
+            <div class="sv-page-header">
+                <div>
+                    <h1>Selamat Datang, <?= $userName ?> 👋</h1>
+                    <p>Berikut ringkasan kondisi pasien home care Anda hari ini, <?= date('d F Y') ?>.</p>
+                </div>
+                <a href="tambah-pasien.php" class="btn btn-primary">
+                     Tambah Pasien
+                </a>
             </div>
 
-            <!-- Ringkasan Ringkas (Cards) -->
-            <div class="row g-3 mb-4">
-                <div class="col-md-4">
-                    <div class="card shadow-sm border-0 bg-white p-3">
-                        <div class="text-muted small fw-medium">Total Pasien Homecare</div>
-                        <div class="fs-3 fw-bold text-primary"><?php echo $totalPatients; ?> Orang</div>
-                    </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;">
+                <div class="sv-stat-card" style="--accent-color:var(--sv-blue);">
+                    <div class="stat-label">Total Pasien</div>
+                    <div class="stat-value"><?= $totalPatients ?></div>
+                    <div class="stat-sub">Pasien terdaftar</div>
+                    <div class="stat-icon"><?= sf_icon('person-2', 36) ?></div>
                 </div>
-                <div class="col-md-4">
-                    <div class="card shadow-sm border-0 bg-white p-3">
-                        <div class="text-muted small fw-medium">Kunjungan Hari Ini</div>
-                        <div class="fs-3 fw-bold text-warning"><?php echo $todayVisits; ?> Pasien</div>
-                    </div>
+                <div class="sv-stat-card" style="--accent-color:var(--sv-yellow);">
+                    <div class="stat-label">Kunjungan Hari Ini</div>
+                    <div class="stat-value"><?= $todayVisits ?></div>
+                    <div class="stat-sub">Agenda monitoring</div>
+                    <div class="stat-icon"><?= sf_icon('calendar', 36) ?></div>
                 </div>
-                <div class="col-md-4">
-                    <div class="card shadow-sm border-0 bg-white p-3">
-                        <div class="text-muted small fw-medium">Tugas Selesai</div>
-                        <div class="fs-3 fw-bold text-success"><?php echo $todayFinished; ?> Selesai</div>
-                    </div>
+                <div class="sv-stat-card" style="--accent-color:var(--sv-red);">
+                    <div class="stat-label">Perlu Kontrol</div>
+                    <div class="stat-value"><?= $needControl ?></div>
+                    <div class="stat-sub">Butuh perhatian</div>
+                    <div class="stat-icon"><?= sf_icon('exclamation-triangle', 36) ?></div>
+                </div>
+                <div class="sv-stat-card" style="--accent-color:var(--sv-green);">
+                    <div class="stat-label">Total Monitoring</div>
+                    <div class="stat-value"><?= count($monitorings) ?></div>
+                    <div class="stat-sub">Semua catatan</div>
+                    <div class="stat-icon"><?= sf_icon('clipboard', 36) ?></div>
                 </div>
             </div>
 
-            <!-- Tabel Jadwal Singkat -->
-            <div class="card shadow-sm border-0 p-4">
-                <h5 class="fw-bold mb-3 text-secondary">Agenda Kunjungan Rumah Hari Ini</h5>
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Jam</th>
-                                <th>Nama Pasien</th>
-                                <th>Alamat Rumah</th>
-                                <th>Status</th>
-                                <th>Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (empty($todayAgenda)): ?>
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;" class="dashboard-grid">
+                <div class="sv-card" style="padding:0;">
+                    <div class="sv-section-header">
+                        <h5>📋 Agenda Kunjungan Hari Ini</h5>
+                        <a href="monitoring.php" class="btn btn-outline-primary btn-sm" style="text-decoration:none;">Lihat Semua</a>
+                    </div>
+                    <div class="sv-table-wrap" style="border:none;border-radius:0;box-shadow:none;">
+                        <table class="table">
+                            <thead>
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-3">Tidak ada agenda kunjungan hari ini.</td>
+                                    <th>Jam</th>
+                                    <th>Nama Pasien</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
                                 </tr>
-                            <?php else: ?>
-                                <?php foreach ($todayAgenda as $agenda): ?>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($todayAgenda)): ?>
                                     <tr>
-                                        <td><?php echo isset($agenda['monitoring_time']) ? date('H:i', strtotime($agenda['monitoring_time'])) : '--:--'; ?> WIB</td>
-                                        <td class="fw-medium"><?php echo htmlspecialchars($agenda['patient']['patient_name'] ?? '-'); ?></td>
-                                        <td><?php echo htmlspecialchars($agenda['patient']['address'] ?? '-'); ?></td>
-                                        <td>
-                                            <?php if (($agenda['status'] ?? '') === 'Stable'): ?>
-                                                <span class="badge bg-success">Selesai</span>
-                                            <?php else: ?>
-                                                <span class="badge bg-warning text-dark">Tertunda / Belum</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <a href="pasien.php" class="btn btn-sm btn-outline-primary py-1">Detail</a>
+                                        <td colspan="4">
+                                            <div class="sv-empty-state">
+                                                <div class="empty-icon"><?= sf_icon('calendar', 40) ?></div>
+                                                <p>Tidak ada agenda kunjungan hari ini.</p>
+                                            </div>
                                         </td>
                                     </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
+                                <?php else: ?>
+                                    <?php foreach ($todayAgenda as $ag): ?>
+                                        <tr>
+                                            <td style="font-weight:600;">
+                                                <?= isset($ag['monitoring_time']) ? date('H:i', strtotime($ag['monitoring_time'])) : '--:--' ?> WIB
+                                            </td>
+                                            <td>
+                                                <?= htmlspecialchars($ag['patient']['patient_name'] ?? '-') ?>
+                                                <br><small style="color:var(--sv-text-muted);"><?= htmlspecialchars($ag['patient']['address'] ?? '') ?></small>
+                                            </td>
+                                            <td><?= getStatusBadge($ag['status'] ?? '') ?></td>
+                                            <td><a href="detail-monitoring.php?id=<?= $ag['id'] ?>" class="btn btn-outline-primary btn-sm" style="text-decoration:none;">Detail</a></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="sv-card" style="display:flex;flex-direction:column;gap:16px;">
+                    <h5 style="font-size:15px;font-weight:600;margin:0;">🔍 Cari Cepat</h5>
+                    <p style="font-size:13px;color:var(--sv-text-muted);margin:0;">Masukkan kode pasien atau NIK untuk riwayat.</p>
+                    <form action="cari-pasien.php" method="GET" style="display:flex;flex-direction:column;gap:8px;">
+                        <input type="text" name="q" class="form-control" placeholder="Kode pasien / NIK dummy...">
+                        <button type="submit" class="btn btn-primary">Cari Data</button>
+                    </form>
+                    <hr style="border:none;border-top:1px solid var(--sv-border);margin:8px 0;">
+                    <h5 style="font-size:13px;font-weight:600;text-transform:uppercase;color:var(--sv-text-muted);margin:0;">Aksi Cepat</h5>
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                        <a href="tambah-pasien.php" class="btn btn-outline-primary" style="text-decoration:none;text-align:left;"> Tambah Pasien Baru</a>
+                        <a href="tambah-monitoring.php" class="btn btn-outline-primary" style="text-decoration:none;text-align:left;">🩺 Catat Monitoring</a>
+                        <a href="lokasi-petugas.php" class="btn btn-outline-primary" style="text-decoration:none;text-align:left;">📍 Monitoring Lokasi</a>
+                        <a href="monitoring.php" class="btn btn-outline-primary" style="text-decoration:none;text-align:left;">📋 Semua Monitoring</a>
+                    </div>
                 </div>
             </div>
-
         </div>
+
+        <footer style="padding:16px 24px;border-top:1px solid var(--sv-border);text-align:center;color:var(--sv-text-muted);font-size:13px;background:var(--sv-surface);">
+            Sivisit-Kelompok 9 S1 Informatika UAS Pemrograman WEB ITSK Rs Dr Soepraoen Malang — Data simulasi, bukan diagnosis medis.
+        </footer>
     </div>
 </div>
 
-<!-- Bootstrap 5 JS Bundle -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.getElementById('globalSearch')?.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && this.value.trim()) {
+            window.location.href = 'cari-pasien.php?q=' + encodeURIComponent(this.value.trim());
+        }
+    });
+</script>
 </body>
 </html>
