@@ -1,0 +1,198 @@
+/* Public landing navbar — Apple HIG style */
+.sv-navbar,
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    height: 64px;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+}
+
+.sv-brand,
+.nav-brand {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #001A42;
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
+.sv-brand span,
+.nav-brand span {
+    color: #007AFF;
+}
+
+.sv-navbar-links,
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+}
+
+.sv-navbar-links a,
+.nav-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #636366;
+    text-decoration: none;
+    transition: color 0.2s, background 0.2s;
+    white-space: nowrap;
+}
+
+.sv-navbar-links a .nav-sf-icon,
+.nav-links a .nav-sf-icon {
+    flex-shrink: 0;
+    opacity: 0.72;
+}
+
+.sv-navbar-links a:hover,
+.nav-links a:hover {
+    color: #007AFF;
+    background: rgba(0, 122, 255, 0.08);
+}
+
+.sv-navbar-links a:hover .nav-sf-icon,
+.nav-links a:hover .nav-sf-icon {
+    opacity: 1;
+}
+
+.sv-navbar-links a.active,
+.nav-links a.active {
+    color: #007AFF;
+    background: #E8F1FF;
+    font-weight: 600;
+}
+
+.sv-navbar-links a.active .nav-sf-icon,
+.nav-links a.active .nav-sf-icon {
+    opacity: 1;
+}
+
+.btn-sv-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #007AFF !important;
+    color: #fff !important;
+    border-radius: 10px;
+    padding: 9px 18px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    box-shadow: 0 4px 14px rgba(0, 122, 255, 0.2);
+    transition: background 0.2s;
+}
+
+.btn-sv-primary:hover {
+    background: #0058D0 !important;
+}
+
+.burger-btn {
+    display: none;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: background 0.2s;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.burger-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.burger-btn span {
+    display: block;
+    width: 20px;
+    height: 2.5px;
+    background: #1C1C1E;
+    border-radius: 2px;
+    transition: 0.25s;
+}
+
+.burger-btn.active span:nth-child(1) {
+    transform: translateY(7.5px) rotate(45deg);
+}
+
+.burger-btn.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.burger-btn.active span:nth-child(3) {
+    transform: translateY(-7.5px) rotate(-45deg);
+}
+
+.mobile-menu {
+    display: none;
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    padding: 12px;
+    z-index: 999;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mobile-menu.open {
+    display: flex;
+}
+
+.mobile-menu a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #1C1C1E;
+    text-decoration: none;
+    transition: background 0.2s, color 0.2s;
+}
+
+.mobile-menu a:hover,
+.mobile-menu a.active {
+    background: #E8F1FF;
+    color: #007AFF;
+}
+
+.mobile-menu a .nav-sf-icon {
+    opacity: 0.85;
+}
+
+@media (max-width: 768px) {
+    .sv-navbar-links,
+    .nav-links {
+        display: none;
+    }
+
+    .burger-btn {
+        display: flex;
+    }
+}
